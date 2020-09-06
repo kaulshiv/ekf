@@ -27,14 +27,12 @@ void KalmanFilter::Init(VectorXd &x_in, MatrixXd &P_in, MatrixXd &F_in,
 }
 
 void KalmanFilter::Predict() {
-  cout << "PREDICT" << endl;
   x_ = F_*x_;
   MatrixXd Ft = F_.transpose();
   P_ = F_ * P_ * Ft + Q_;
 }
 
 void KalmanFilter::Update(const VectorXd &z) {
-  cout << "UPDATE" << endl;
   VectorXd y = z - H_ * x_;
   MatrixXd Ht = H_.transpose();
   MatrixXd S_ = H_ * P_ * Ht + R_;
@@ -52,7 +50,6 @@ void KalmanFilter::UpdateEKF(const VectorXd &z) {
    * TODO: update the state by using Extended Kalman Filter equations
    */
 
-  cout << "UPDATE EKF" << endl;
   float px = x_(0);
   float py = x_(1);
   float vx = x_(2);
@@ -60,10 +57,21 @@ void KalmanFilter::UpdateEKF(const VectorXd &z) {
   float rho = pow(pow(px, 2) + pow(py, 2),0.5);
 
   VectorXd h_of_x = VectorXd(3);
+  
+  // check division by zero
+  if (rho == 0) {
+    cout << "Error in UpdateEKF: division by zero" << endl;
+  }
 
   h_of_x << rho, atan2(py,px), (px*vx + py*vy)/rho;
 
   VectorXd y = z - h_of_x;
+
+  float inc = (float(y(1)<0) -float(y(1)>0)) *2*M_PI;
+
+  while(y(1) > M_PI || y(1) < -M_PI){
+    y(1) = float(y(1)) + inc;
+  }
 
   MatrixXd Hjt = H_.transpose();
   MatrixXd S_ = H_ * P_ * Hjt + R_;
@@ -74,11 +82,5 @@ void KalmanFilter::UpdateEKF(const VectorXd &z) {
   x_ = x_ + (K * y);
   MatrixXd I = MatrixXd::Identity(4, 4);
   P_ = (I - K * H_) * P_;
-
-  cout << "y = " << y << endl;
-  // cout << "Hjt = " << Hjt << endl;
-  // cout << "S = " << S_ << endl;
-
-
 
 }
